@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# File path
+file="pyproject.toml"
+
+# Read the current version
+current_version=$(grep '^version = ' "$file" | sed 's/version = "\(.*\)"/\1/')
+
+# Split the version into parts
+IFS='.' read -ra version_parts <<< "$current_version"
+
+# Increment the last part
+last_index=$((${#version_parts[@]} - 1))
+version_parts[$last_index]=$((version_parts[last_index] + 1))
+
+# Join the parts back together
+new_version=$(IFS='.'; echo "${version_parts[*]}")
+
+# Update the file
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    # macOS
+    sed -i '' "s/^version = \"$current_version\"/version = \"$new_version\"/" "$file"
+else
+    # Linux and others
+    sed -i "s/^version = \"$current_version\"/version = \"$new_version\"/" "$file"
+fi
+
+echo "Version updated from $current_version to $new_version"

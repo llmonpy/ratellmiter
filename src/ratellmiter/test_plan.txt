@@ -1,0 +1,6 @@
+start tester and ratellmiter
+    test sets its start time
+    creates min & second buckets in advance for length of test specified
+    throws exception if seccond bucket is overfilled
+    throws a rate limit exception every x requests
+    ratellmiter_is_llm_blocked always returns false

@@ -3,24 +3,14 @@ requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "llmonpy"
-version = "0.1.30"
+name = "rateLLMiter"
+version = "0.1.00"
 authors = [{ name="Tom Burns", email="public@llmonpy.ai" }]
-description = "AI pipeline framework for Python."
+description = "LLM ratelimiter for Python."
 readme = "README.md"
 license = { file = "LICENSE" }
 dependencies = [
-    "google-generativeai",
-    "openai",
-    "mistralai",
-    "anthropic",
     "fireworks-ai",
-    "together",
-    "groq",
-    "nothingpy",
-    "jinja2",
-    "flask",
-    "flask_cors",
     "matplotlib"
 ]
 requires-python = ">=3.12"
@@ -39,5 +29,5 @@ llmonpy_viewer = "llmonpy.api.api:run_api"
 where = ["src"]
 
 [project.urls]
-Homepage = "https://github.com/llmonpy/llmonpy"
-Issues = "https://github.com/llmonpy/llmonpy/issues"
+Homepage = "https://github.com/llmonpy/ratellmiter"
+Issues = "https://github.com/llmonpy/ratellmiter/issues"

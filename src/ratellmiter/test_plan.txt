@@ -4,4 +4,3 @@ start tester and ratellmiter
     throws exception if seccond bucket is overfilled
     throws a rate limit exception every x requests
     ratellmiter_is_llm_blocked always returns false
-    ratellmiter_is_llm_blocked always returns true

@@ -30,6 +30,7 @@ RATE_LIMIT_RETRIES = 20
 
 LOG_DIRECTORY_ENV_VAR = "RATELLMITER_LOGS"
 DEFAULT_LOG_DIRECTORY = "ratellmiter_logs"
+DEFAULT_RATE_LIMITED_SERVICE_NAME = "default"
 
 class LlmClientRateLimitException(Exception):
     def __init__(self):
@@ -64,7 +65,7 @@ class DefaultRateLimitedService(RateLimitedService):
         return False
 
     def get_service_name(self) -> str:
-        return "default"
+        return DEFAULT_RATE_LIMITED_SERVICE_NAME
 
     def get_ratellmiter(self, model_name:str=None) -> 'BucketRateLimiter':
         return self.rate_limiter
@@ -712,7 +713,11 @@ class RateLlmiterMonitor:
         self.timer = None
         self.listener_list = []
 
-    def start(self):
+    def start(self, log_directory=None, default_rate_limit=None):
+        if log_directory is not None:
+            self.set_log_directory(log_directory)
+        if default_rate_limit is not None:
+            self.set_default_rate_limit(default_rate_limit)
         self.default_rate_limited_service = DefaultRateLimitedService(self.default_rate_limit)
         if self.log_directory is None:
             self.log_directory = os.getenv(LOG_DIRECTORY_ENV_VAR)

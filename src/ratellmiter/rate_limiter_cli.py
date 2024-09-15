@@ -3,7 +3,7 @@ import os
 import subprocess
 import traceback
 
-from ratellmiter.rate_llmiter import get_rate_limiter_monitor
+from ratellmiter.rate_llmiter import get_rate_limiter_monitor, DEFAULT_RATE_LIMITED_SERVICE_NAME
 
 
 def ratellmiter_cli():
@@ -16,6 +16,8 @@ def ratellmiter_cli():
     try:
         file_name = args.file
         model_name = args.name
+        if model_name is None:
+            model_name = DEFAULT_RATE_LIMITED_SERVICE_NAME
         lines = args.lines
         result = get_rate_limiter_monitor().graph_model_requests(file_name, model_name, lines)
         if result is not None:

@@ -21,12 +21,14 @@ classifiers = [
 ]
 
 [project.scripts]
-llmonpy = "llmonpy.llmonpy_cli:llmonpy_cli"
-llmonpy_viewer = "llmonpy.api.api:run_api"
+ratellmiter = "ratellmiter.rate_llmitor_cli:ratellmiter_cli"
 
 # Find packages in the src directory
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+"ratellmiter" = ["*.sh"]
 
 [project.urls]
 Homepage = "https://github.com/llmonpy/ratellmiter"

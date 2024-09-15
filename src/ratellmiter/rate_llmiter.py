@@ -44,12 +44,30 @@ def sanitize_file_name(file_name):
 
 
 class RateLimitedService:
-    def rate_llmiter_is_llm_blocked(self) -> bool:
+    def ratellmiter_is_llm_blocked(self) -> bool:
         raise NotImplementedError
 
     def get_service_name(self) -> str:
         raise NotImplementedError
 
+    def get_ratellmiter(self, model_name:str=None) -> 'BucketRateLimiter':
+        raise NotImplementedError
+
+
+class DefaultRateLimitedService(RateLimitedService):
+    def __init__(self, rate_limit=300):
+        self.rate_limit = rate_limit if rate_limit is not None else 300
+        self.rate_limiter = BucketRateLimiter(rate_limit)
+        self.rate_limiter.set_rate_limited_service(self)
+
+    def ratellmiter_is_llm_blocked(self) -> bool:
+        return False
+
+    def get_service_name(self) -> str:
+        return "default"
+
+    def get_ratellmiter(self, model_name:str=None) -> 'BucketRateLimiter':
+        return self.rate_limiter
 
 
 class RateLimitedEvent:
@@ -359,9 +377,9 @@ class BucketRateLimiterLock:
 
 
 class BucketRateLimiter:
-    def __init__(self, request_per_minute, tokens_per_minute, rate_limited_service_name:str=None, rate_limited_service: RateLimitedService = None):
+    def __init__(self, request_per_minute, rate_limited_service_name:str=None,
+                 rate_limited_service: RateLimitedService = None):
         self.request_per_minute = request_per_minute
-        self.tokens_per_minute = tokens_per_minute
         self.rate_limited_service = rate_limited_service
         # can not just ask service for name because some services use one rate limiter for many models
         self.rate_limited_service_name = rate_limited_service_name
@@ -478,7 +496,7 @@ class BucketRateLimiter:
     def test_if_service_resumed(self):
         current_time = int(time.time())
         print("testing if blocked at: ", current_time)
-        blocked = self.rate_limited_service.rate_llmiter_is_llm_blocked()
+        blocked = self.rate_limited_service.ratellmiter_is_llm_blocked()
         if blocked:
             self.thread_safe_data.service_test_interval = min(
                 self.thread_safe_data.service_test_interval * INTERVAL_BACKOFF_RATE,
@@ -688,11 +706,14 @@ class RateLlmiterMonitor:
         self.start_time_in_seconds = int(time.time())
         self.start_iso_date_string = datetime.datetime.fromtimestamp(self.start_time_in_seconds).isoformat()
         self.log_directory = None
+        self.default_rate_limit = 300
+        self.default_rate_limited_service: RateLimitedService = None
         self.active_rate_limiter_dict = {}
         self.timer = None
         self.listener_list = []
 
     def start(self):
+        self.default_rate_limited_service = DefaultRateLimitedService(self.default_rate_limit)
         if self.log_directory is None:
             self.log_directory = os.getenv(LOG_DIRECTORY_ENV_VAR)
         if self.log_directory is None:
@@ -730,6 +751,13 @@ class RateLlmiterMonitor:
         self.log_directory = log_directory
         print(f"rate limiter log_directory: {self.log_directory}")
         os.makedirs(self.log_directory, exist_ok=True)
+
+    def set_default_rate_limit(self, default_rate_limit: int):
+        self.default_rate_limit = default_rate_limit
+
+    def get_default_ratellmiter(self):
+        result = self.default_rate_limited_service.get_ratellmiter()
+        return result
 
     def add_tickets(self):
         self.second_bucket_index = self.second_bucket_index % 60
@@ -785,10 +813,9 @@ class RateLlmiterMonitor:
     def graph_model_requests(self, file_name, model_name, lines:str):
         lines = lines if lines is not None else "iroef" # i=issued, r=requests, o=overflow, e=exceptions, f=finished
         bucket_list, file_name = self.load_session_file(file_name, model_name)
-        plot_file_name = ""
         if len(bucket_list) == 0:
             print("No data in file")
-            return plot_file_name
+            return None
         if model_name is None:
             graph = CompareModelsGraph(bucket_list)
             plot_file_name = file_name.replace(".jsonl", "-compare.png")
@@ -806,31 +833,31 @@ class RateLlmiterMonitor:
         return RateLlmiterMonitor._instance
 
 
+def get_rate_limiter_monitor() -> RateLlmiterMonitor:
+    return RateLlmiterMonitor.get_instance()
+
+
 def ratellmiter(user_request_id_arg=None, model_name_arg=None):
     def decorator(func):
         @functools.wraps(func)
         def wrapper(self, *args, **kwargs):
-            rate_limiter = self.get_rate_limiter()
-            if rate_limiter is None:
-                return func(self, *args, **kwargs)
             user_request_id=None
             model_name=None
             if user_request_id_arg is not None:
                 user_request_id = kwargs.get(user_request_id_arg)
             if model_name_arg is not None:
                 model_name = kwargs.get(model_name_arg)
+            rate_limiter = self.get_ratellmiter(model_name)
+            if rate_limiter is None:
+                rate_limiter = get_rate_limiter_monitor().get_default_ratellmiter()
             number_of_retries = rate_limiter.get_number_of_retries()
             ticket = None  # Initialize ticket variable
-
             for attempt in range(number_of_retries):
                 try:
                     ticket = rate_limiter.get_ticket(user_request_id, model_name)  # Get initial ticket
                     result = func(self, *args, **kwargs)
-                    if result is None:
-                        raise LlmClientRateLimitException()
-                    else:
-                        rate_limiter.return_ticket(ticket)
-                        break
+                    rate_limiter.return_ticket(ticket)
+                    break
                 except RateLimitError as re:
                     ticket = rate_limiter.wait_for_ticket_after_rate_limit_exceeded(ticket)
                     continue
@@ -848,6 +875,3 @@ def ratellmiter(user_request_id_arg=None, model_name_arg=None):
         return wrapper
     return decorator
 
-
-def get_rate_limiter_monitor() -> RateLlmiterMonitor:
-    return RateLlmiterMonitor.get_instance()

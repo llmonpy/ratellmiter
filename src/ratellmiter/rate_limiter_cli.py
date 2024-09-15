@@ -1,10 +1,12 @@
 import argparse
+import os
+import subprocess
 import traceback
 
 from ratellmiter.rate_llmiter import get_rate_limiter_monitor
 
 
-def llmonpy_cli():
+def ratellmiter_cli():
     get_rate_limiter_monitor().start()
     parser = argparse.ArgumentParser(description='Run specific functions from the command line.')
     parser.add_argument('-name', type=str, help='name argument')
@@ -16,7 +18,14 @@ def llmonpy_cli():
         model_name = args.name
         lines = args.lines
         result = get_rate_limiter_monitor().graph_model_requests(file_name, model_name, lines)
-        print("plot_file_name:"+result)
+        if result is not None:
+            print("plot_file_name:"+result)
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            open_graph_path = os.path.join(current_dir, "open_graph.sh")
+            open_command = str(open_graph_path) + " " + result
+            subprocess.run(f"bash {open_command} &", shell=True)
+        else:
+            print("No data to plot")
     except Exception as e:
         stack_trace = traceback.format_exc()
         print(stack_trace)
@@ -26,4 +35,4 @@ def llmonpy_cli():
         exit(0)
 
 if __name__ == "__main__":
-    llmonpy_cli()
+    ratellmiter_cli()

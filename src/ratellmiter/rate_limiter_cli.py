@@ -3,7 +3,7 @@ import os
 import subprocess
 import traceback
 
-from ratellmiter.rate_llmiter import get_rate_limiter_monitor, DEFAULT_RATE_LIMITED_SERVICE_NAME
+from rate_llmiter import get_rate_limiter_monitor, DEFAULT_RATE_LIMITED_SERVICE_NAME
 
 
 def ratellmiter_cli():

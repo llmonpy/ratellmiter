@@ -26,7 +26,7 @@ source .venv/bin/activate
 Install the package from PyPi - this takes awhile because it also installs the python clients of multiple LLMs:
 
 ```bash
-pip install ratellmiter
+pip install ratellmiter-ai
 ```
 ### Startup and Shutdown
 rateLLMiter has a monitor thread and logging that needs to be started and stopped.

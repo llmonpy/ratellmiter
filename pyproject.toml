@@ -3,8 +3,8 @@ requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "rateLLMiter"
-version = "0.1.00"
+name = "rateLLMiter-ai"
+version = "0.1.8"
 authors = [{ name="Tom Burns", email="public@llmonpy.ai" }]
 description = "LLM ratelimiter for Python."
 readme = "README.md"
@@ -21,7 +21,7 @@ classifiers = [
 ]
 
 [project.scripts]
-ratellmiter = "ratellmiter.rate_llmitor_cli:ratellmiter_cli"
+ratellmiter = "rate_llmitor_cli:ratellmiter_cli"
 
 # Find packages in the src directory
 [tool.setuptools.packages.find]

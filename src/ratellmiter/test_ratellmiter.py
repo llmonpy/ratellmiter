@@ -3,7 +3,7 @@ import random
 import threading
 import time
 
-from ratellmiter.rate_llmiter import get_rate_limiter_monitor, ratellmiter, BucketRateLimiter, \
+from ratellmiter.rate_llmiter import get_rate_limiter_monitor, llmiter, BucketRateLimiter, \
     LlmClientRateLimitException, RateLimitedService
 
 TEST_DURATION = 180 # seconds
@@ -50,7 +50,7 @@ class TestRateLimitedService(RateLimitedService):
     def start(self):
         self.start_time = time.time()
 
-    @ratellmiter()
+    @llmiter()
     def make_request(self):
         current_time = time.time()
         second_index = int(current_time - self.start_time)

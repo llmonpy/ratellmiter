@@ -845,7 +845,7 @@ def get_rate_limiter_monitor() -> RateLlmiterMonitor:
     return RateLlmiterMonitor.get_instance()
 
 
-def ratellmiter(user_request_id_arg=None, model_name_arg=None):
+def llmiter(user_request_id_arg=None, model_name_arg=None):
     def decorator(func):
         @functools.wraps(func)
         def wrapper(self, *args, **kwargs):

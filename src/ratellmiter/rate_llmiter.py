@@ -12,13 +12,16 @@
 #  WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
 #  COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
 #  OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+import argparse
 import copy
 import datetime
 import functools
 import json
 import os
+import subprocess
 import threading
 import time
+import traceback
 from pathlib import Path
 import matplotlib.pyplot as plt
 from fireworks.client.error import RateLimitError
@@ -880,3 +883,32 @@ def ratellmiter(user_request_id_arg=None, model_name_arg=None):
         return wrapper
     return decorator
 
+def ratellmiter_cli():
+    get_rate_limiter_monitor().start()
+    parser = argparse.ArgumentParser(description='Run specific functions from the command line.')
+    parser.add_argument('-name', type=str, help='name argument')
+    parser.add_argument('-file', type=str, help='file argument')
+    parser.add_argument('-lines', type=str, help='ex: iroef, i=issued, r=requests, o=overflow, e=exceptions, f=finished')
+    args = parser.parse_args()
+    try:
+        file_name = args.file
+        model_name = args.name
+        if model_name is None:
+            model_name = DEFAULT_RATE_LIMITED_SERVICE_NAME
+        lines = args.lines
+        result = get_rate_limiter_monitor().graph_model_requests(file_name, model_name, lines)
+        if result is not None:
+            print("plot_file_name:"+result)
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            open_graph_path = os.path.join(current_dir, "open_graph.sh")
+            open_command = str(open_graph_path) + " " + result
+            subprocess.run(f"bash {open_command} &", shell=True)
+        else:
+            print("No data to plot")
+    except Exception as e:
+        stack_trace = traceback.format_exc()
+        print(stack_trace)
+        print(str(e))
+    finally:
+        get_rate_limiter_monitor().stop()
+        exit(0)

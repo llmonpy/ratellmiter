@@ -13,7 +13,7 @@ throttling by:
 >3. After a rate limit exception, rateLLMiter periodically tests the LLM server to see if it is accepting requests again.
     When it is accepting requests, rateLLMiter releases the requests that had rate limit exceptions first.  
 
-To use rateLLMiter, you just need to start it and use the ratellmiter decorator on your rate limited methods.  Behind the
+To use rateLLMiter, you just need to start it and use the llmiter decorator on your rate limited methods.  Behind the
 scenes, rateLLMiter uses "tickets" to pace the flow of requests to the LLM server.  The decorator requests a ticket.
 If no ticket is available, the requester is paused until a ticket is available.  If there is a rate limit exception after a ticket
 has been issued, the ticket is returned to the rate limiter and the caller waits for a new ticket.  Rate limited requests
@@ -53,11 +53,11 @@ default rate list is 300 requests per minute.  You can change these by setting t
 ```
 
 ### The easy way to use rateLLMiter
-The easiest way to use rateLLMiter is to use the ratellmiter decorator.  If you are only using one LLM client, you only
+The easiest way to use rateLLMiter is to use the llmiter decorator.  If you are only using one LLM client, you only
 need to use the decorator. You can change the default rate limit by setting the default_rate_limit parameter on startup.
 
 ```python
-        @ratellmiter
+        @llmiter
         def get_response(prompt):
             # Your code here
 ```
@@ -71,7 +71,7 @@ Graphs are a helpful to see what rateLLMiter is doing.  You can generate graphs 
 command in your venv:
 
 ```bash
-ratellmiter -name=? -file=? -lines=?
+llmiter -name=? -file=? -lines=?
 ```
 
 > - -name: The name of the rate limited service (usually, a model name) you want to graph.  If not specified, it will use "default".

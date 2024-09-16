@@ -855,7 +855,11 @@ def ratellmiter(user_request_id_arg=None, model_name_arg=None):
                 user_request_id = kwargs.get(user_request_id_arg)
             if model_name_arg is not None:
                 model_name = kwargs.get(model_name_arg)
-            rate_limiter = self.get_ratellmiter(model_name)
+            ratellmiter = None
+            try:
+                rate_limiter = self.get_ratellmiter(model_name)
+            except Exception as e:
+                rate_limiter = None # ignore, decorated function might not have been an object or have a get_ratellmiter method
             if rate_limiter is None:
                 rate_limiter = get_rate_limiter_monitor().get_default_ratellmiter()
             number_of_retries = rate_limiter.get_number_of_retries()

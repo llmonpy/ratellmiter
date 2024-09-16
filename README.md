@@ -71,10 +71,10 @@ Graphs are a helpful to see what rateLLMiter is doing.  You can generate graphs 
 command in your venv:
 
 ```bash
-ratellmiter -model=? -file=? -lines=?
+ratellmiter -name=? -file=? -lines=?
 ```
 
-> - -model: The name of the model you want to graph.  If not specified, it will use "default".
+> - -name: The name of the rate limited service (usually, a model name) you want to graph.  If not specified, it will use "default".
 > - -file: The source file for the data to graphs.  By default, it uses the most recent log file with data.
 > - -lines: The lines to draw on the graph. For example "ri" will draw the requests and issued tickets lines.  The other
   options are e=rate limit exceptions, f=finished requests, o=overflow requests

@@ -715,8 +715,10 @@ class RateLlmiterMonitor:
         self.active_rate_limiter_dict = {}
         self.timer = None
         self.listener_list = []
+        self.configured = False
+        self.started = False
 
-    def start(self, log_directory=None, default_rate_limit=None):
+    def config(self, log_directory=None, default_rate_limit=None):
         if log_directory is not None:
             self.set_log_directory(log_directory)
         if default_rate_limit is not None:
@@ -726,13 +728,21 @@ class RateLlmiterMonitor:
             self.log_directory = os.getenv(LOG_DIRECTORY_ENV_VAR)
         if self.log_directory is None:
             self.log_directory = os.path.join(os.getcwd(), DEFAULT_LOG_DIRECTORY)
-        time_in_seconds = int(time.time())
-        iso_date_string = datetime.datetime.fromtimestamp(time_in_seconds).isoformat()
-        for rate_limiter in self.rate_limiter_list:
-            rate_limiter.refresh_minute_bucket(time_in_seconds, iso_date_string)
-        self.second_bucket_index = 1
-        self.timer = threading.Timer(interval=1, function=self.add_tickets)
-        self.timer.start()
+        self.configured = True
+
+    def start(self):
+        if self.started is False:
+            if self.configured is False:
+                self.config()
+            time_in_seconds = int(time.time())
+            iso_date_string = datetime.datetime.fromtimestamp(time_in_seconds).isoformat()
+            for rate_limiter in self.rate_limiter_list:
+                rate_limiter.refresh_minute_bucket(time_in_seconds, iso_date_string)
+            self.second_bucket_index = 1
+            self.started = True
+            self.timer = threading.Timer(interval=1, function=self.add_tickets)
+            self.timer.start()
+
 
     def add_listener(self, listener: SecondTicketBucketListener):
         self.listener_list.append(listener)
@@ -751,6 +761,7 @@ class RateLlmiterMonitor:
                 buckets_to_log.append(rate_limiter.get_current_minute_bucket())
             self.write_buckets_to_log(buckets_to_log)
             self.timer.cancel()
+            self.started = False
 
     def add_rate_limiter(self, rate_limiter):
         self.rate_limiter_list.append(rate_limiter)
@@ -798,14 +809,15 @@ class RateLlmiterMonitor:
                         file.write(bucket.to_json() + "\n")
                         self.send_bucket_to_listeners(bucket.get_current_second_bucket())
 
-    def load_session_file(self, file_name, model_name):
+    def load_session_file(self, file_name, model_name, directory=None):
+        directory = directory if directory is not None else self.log_directory
         if file_name is None:
-            log_directory = Path(self.log_directory)
+            log_directory = Path(directory)
             log_files = log_directory.glob("*.jsonl")
             non_empty_log_files = [file for file in log_files if file.stat().st_size > 0]
             session_file = max(non_empty_log_files, key=lambda f: f.stat().st_mtime, default=None)
         else:
-            session_file = os.path.join(self.log_directory, file_name)
+            session_file = os.path.join(directory, file_name)
         bucket_list = []
         with open(session_file, "r") as file:
             for line in file:
@@ -818,9 +830,9 @@ class RateLlmiterMonitor:
         file_name = os.path.basename(session_file)
         return bucket_list, file_name
 
-    def graph_model_requests(self, file_name, model_name, lines:str):
+    def graph_model_requests(self, file_name, model_name, lines:str, directory=None):
         lines = lines if lines is not None else "iroef" # i=issued, r=requests, o=overflow, e=exceptions, f=finished
-        bucket_list, file_name = self.load_session_file(file_name, model_name)
+        bucket_list, file_name = self.load_session_file(file_name, model_name, directory)
         if len(bucket_list) == 0:
             print("No data in file")
             return None
@@ -845,7 +857,7 @@ def get_rate_limiter_monitor() -> RateLlmiterMonitor:
     return RateLlmiterMonitor.get_instance()
 
 
-def llmiter(user_request_id_arg=None, model_name_arg=None):
+def llmiter(user_request_id_arg=None, model_name_arg=None, debug=False):
     def decorator(func):
         @functools.wraps(func)
         def wrapper(self, *args, **kwargs):
@@ -855,10 +867,15 @@ def llmiter(user_request_id_arg=None, model_name_arg=None):
                 user_request_id = kwargs.get(user_request_id_arg)
             if model_name_arg is not None:
                 model_name = kwargs.get(model_name_arg)
-            ratellmiter = None
             try:
                 rate_limiter = self.get_ratellmiter(model_name)
+                if debug and rate_limiter is None:
+                    print(f"no rate limiter for {model_name}")
+                elif debug:
+                    print(f"rate limiter for {model_name} is {rate_limiter.get_rate_limited_service_name()}")
             except Exception as e:
+                if debug:
+                    print(f"error getting rate limiter: {e}")
                 rate_limiter = None # ignore, decorated function might not have been an object or have a get_ratellmiter method
             if rate_limiter is None:
                 rate_limiter = get_rate_limiter_monitor().get_default_ratellmiter()
@@ -891,16 +908,18 @@ def ratellmiter_cli():
     get_rate_limiter_monitor().start()
     parser = argparse.ArgumentParser(description='Run specific functions from the command line.')
     parser.add_argument('-name', type=str, help='name argument')
+    parser.add_argument('-dir', type=str, help='directory of log files')
     parser.add_argument('-file', type=str, help='file argument')
     parser.add_argument('-lines', type=str, help='ex: iroef, i=issued, r=requests, o=overflow, e=exceptions, f=finished')
     args = parser.parse_args()
     try:
         file_name = args.file
         model_name = args.name
+        directory = args.dir
         if model_name is None:
             model_name = DEFAULT_RATE_LIMITED_SERVICE_NAME
         lines = args.lines
-        result = get_rate_limiter_monitor().graph_model_requests(file_name, model_name, lines)
+        result = get_rate_limiter_monitor().graph_model_requests(file_name, model_name, lines, directory)
         if result is not None:
             print("plot_file_name:"+result)
             current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -916,3 +935,10 @@ def ratellmiter_cli():
     finally:
         get_rate_limiter_monitor().stop()
         exit(0)
+
+
+if __name__ == "__main__":
+    get_rate_limiter_monitor().start()
+    ratellmiter_cli()
+    get_rate_limiter_monitor().stop()
+    exit(0)

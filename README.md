@@ -49,7 +49,7 @@ rate limiting. By default, logs are written to the "ratellmiter_logs" subdirecto
 default rate list is 300 requests per minute.  You can change these by setting their values in the start method.
 
 ```python
-        get_rate_limiter_monitor().start(default_rate_limit=300, log_directory="ratellmiter_logs")
+        get_rate_limiter_monitor().config(default_rate_limit=300, log_directory="ratellmiter_logs")
 ```
 
 ### The easy way to use rateLLMiter
@@ -71,9 +71,10 @@ Graphs are a helpful to see what rateLLMiter is doing.  You can generate graphs 
 command in your venv:
 
 ```bash
-llmiter -name=? -file=? -lines=?
+llmiter -dir -name=? -file=? -lines=?
 ```
 
+> - -dir: The directory where the log files are stored.  By default, it is "ratellmiter_logs"
 > - -name: The name of the rate limited service (usually, a model name) you want to graph.  If not specified, it will use "default".
 > - -file: The source file for the data to graphs.  By default, it uses the most recent log file with data.
 > - -lines: The lines to draw on the graph. For example "ri" will draw the requests and issued tickets lines.  The other

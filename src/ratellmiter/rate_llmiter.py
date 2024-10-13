@@ -905,7 +905,6 @@ def llmiter(user_request_id_arg=None, model_name_arg=None, debug=False):
     return decorator
 
 def ratellmiter_cli():
-    get_rate_limiter_monitor().start()
     parser = argparse.ArgumentParser(description='Run specific functions from the command line.')
     parser.add_argument('-name', type=str, help='name argument')
     parser.add_argument('-dir', type=str, help='directory of log files')
@@ -919,6 +918,10 @@ def ratellmiter_cli():
         if model_name is None:
             model_name = DEFAULT_RATE_LIMITED_SERVICE_NAME
         lines = args.lines
+        if directory is None:
+            get_rate_limiter_monitor().config()
+        else:
+            get_rate_limiter_monitor().config(log_directory=directory)
         result = get_rate_limiter_monitor().graph_model_requests(file_name, model_name, lines, directory)
         if result is not None:
             print("plot_file_name:"+result)
@@ -938,7 +941,5 @@ def ratellmiter_cli():
 
 
 if __name__ == "__main__":
-    get_rate_limiter_monitor().start()
     ratellmiter_cli()
-    get_rate_limiter_monitor().stop()
     exit(0)

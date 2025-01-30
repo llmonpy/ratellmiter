@@ -4,13 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rateLLMiter-ai"
-version = "0.1.22"
+version = "0.1.23"
 authors = [{ name="Tom Burns", email="public@llmonpy.ai" }]
 description = "LLM ratelimiter for Python."
 readme = "README.md"
 license = { file = "LICENSE" }
 dependencies = [
-    "fireworks-ai",
     "matplotlib"
 ]
 requires-python = ">=3.12"

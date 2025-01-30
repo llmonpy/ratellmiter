@@ -24,7 +24,6 @@ import time
 import traceback
 from pathlib import Path
 import matplotlib.pyplot as plt
-from fireworks.client.error import RateLimitError
 
 MIN_TEST_IF_SERVICE_RESUMED_INTERVAL = 10
 MAX_TEST_IF_SERVICE_RESUMED_INTERVAL = 65
@@ -887,9 +886,9 @@ def llmiter(user_request_id_arg=None, model_name_arg=None, debug=False):
                     result = func(self, *args, **kwargs)
                     rate_limiter.return_ticket(ticket)
                     break
-                except RateLimitError as re:
-                    ticket = rate_limiter.wait_for_ticket_after_rate_limit_exceeded(ticket)
-                    continue
+                #except RateLimitError as re:
+                    #ticket = rate_limiter.wait_for_ticket_after_rate_limit_exceeded(ticket)
+                    #continue
                 except Exception as e:
                     if getattr(e, "status_code", None) is not None and (e.status_code == 429 or e.status_code == 529):
                         ticket = rate_limiter.wait_for_ticket_after_rate_limit_exceeded(ticket)
